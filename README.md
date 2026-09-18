@@ -28,7 +28,7 @@ Long context recalls the needle at every size from 2K to 200K, with prefill ≈1
 cp cluster.env.example cluster.env      # HEAD_HOST / WORKER_HOST / QSFP IPs / NIC names for your pair
 scripts/sync-files.sh                   # mirror compose, env, scripts, bench, patches to ~/glm53-cluster/ on both nodes
 scripts/start-worker.sh && sleep 25 && scripts/start-head.sh && scripts/health.sh   # ≈10 min to READY
-# → OpenAI-compatible API on the head: http://127.0.0.1:8888/v1, model name glm-5.3-flash-nvfp4
+# → OpenAI-compatible API on the head: http://<head-ip>:8888/v1 (all interfaces, no auth — LAN/WireGuard only), model name glm-5.3-flash-nvfp4
 scripts/stop-both.sh                    # always both ranks
 ```
 
@@ -49,7 +49,7 @@ bundled MTP head, so there is no drafter dependency and it is commercial-safe as
 | --- | --- | --- |
 | machine | DGX Spark, GB10, 121 GiB, driver 580.159.03 | same |
 | QSFP | `enp1s0f1np1` 192.168.200.14, RDMA `rocep1s0f1`, MTU 9000 | 192.168.200.13 |
-| runs | vLLM API server on 127.0.0.1:8888 | `--headless` worker |
+| runs | vLLM API server on 0.0.0.0:8888 (`VLLM_HOST`) | `--headless` worker |
 
 Docker 29 + compose v5, `nvidia-container-toolkit`, `tmux`, `rsync`, `python3` (the probes are stdlib; only
 `bench/garble_ids.py` needs `tokenizers`), `hf` CLI and `uv` for downloads, and passwordless `sudo` on both nodes
@@ -123,7 +123,7 @@ SIZES=2048,8192,32768,131072,200000 CONC=1,2 scripts/longctx-run.sh s   # staged
 ## The effective `vllm serve` line (default = MTP k=3, rank 0)
 
 ```
-vllm serve /models/GLM-5.3-Flash-NVFP4 --served-model-name glm-5.3-flash-nvfp4 --host 127.0.0.1 --port 8888
+vllm serve /models/GLM-5.3-Flash-NVFP4 --served-model-name glm-5.3-flash-nvfp4 --host 0.0.0.0 --port 8888
   --tensor-parallel-size 2 --distributed-executor-backend mp --nnodes 2 --node-rank 0 --master-addr 192.168.200.14 --master-port 25000
   --language-model-only --kv-cache-dtype fp8_e4m3 --block-size 2304
   --max-num-batched-tokens 4096 --max-model-len 262144 --max-num-seqs 2 --gpu-memory-utilization 0.85

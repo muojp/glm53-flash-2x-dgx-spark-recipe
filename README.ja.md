@@ -26,7 +26,7 @@ prefill は投機に依存しないため構成間で共通です（実測は DF
 cp cluster.env.example cluster.env      # HEAD_HOST / WORKER_HOST / QSFP の IP / NIC 名を自分の 2 台に合わせる
 scripts/sync-files.sh                   # compose・env・scripts・bench・patches を両ノードの ~/glm53-cluster/ へ
 scripts/start-worker.sh && sleep 25 && scripts/start-head.sh && scripts/health.sh   # READY まで約 10 分
-# → head の http://127.0.0.1:8888/v1 に OpenAI 互換 API、model 名は glm-5.3-flash-nvfp4
+# → head の http://<head-ip>:8888/v1 に OpenAI 互換 API (全インターフェース、認証なし — LAN/WireGuard 内限定)、model 名は glm-5.3-flash-nvfp4
 scripts/stop-both.sh                    # 必ず両 rank
 ```
 
@@ -45,7 +45,7 @@ KV プールは pin せず profiler に任せます（この checkpoint で 7.48
 | --- | --- | --- |
 | 機体 | DGX Spark、GB10、121 GiB、driver 580.159.03 | 同左 |
 | QSFP | `enp1s0f1np1` 192.168.200.14、RDMA `rocep1s0f1`、MTU 9000 | 192.168.200.13 |
-| 役割 | vLLM API サーバ 127.0.0.1:8888 | `--headless` worker |
+| 役割 | vLLM API サーバ 0.0.0.0:8888 (`VLLM_HOST`) | `--headless` worker |
 
 Docker 29 + compose v5、nvidia-container-toolkit、tmux、rsync、python3（プローブは stdlib。`bench/garble_ids.py` だけ `tokenizers` が要る）、
 ダウンロードに `hf` CLI と `uv`、両ノードでパスワードなしの `sudo`（スクリプトが `sudo -n` で `vm.swappiness` と drop_caches を触る）。
@@ -116,7 +116,7 @@ SIZES=2048,8192,32768,131072,200000 CONC=1,2 scripts/longctx-run.sh s   # 段階
 ## 実効の `vllm serve` 行（既定 = MTP k=3、rank 0）
 
 ```
-vllm serve /models/GLM-5.3-Flash-NVFP4 --served-model-name glm-5.3-flash-nvfp4 --host 127.0.0.1 --port 8888
+vllm serve /models/GLM-5.3-Flash-NVFP4 --served-model-name glm-5.3-flash-nvfp4 --host 0.0.0.0 --port 8888
   --tensor-parallel-size 2 --distributed-executor-backend mp --nnodes 2 --node-rank 0 --master-addr 192.168.200.14 --master-port 25000
   --language-model-only --kv-cache-dtype fp8_e4m3 --block-size 2304
   --max-num-batched-tokens 4096 --max-model-len 262144 --max-num-seqs 2 --gpu-memory-utilization 0.85
