@@ -36,7 +36,9 @@ Fixed values (already in `cluster.env.example`, leave them): image `ghcr.io/tony
 the SM121 top-k patch mount (in `docker-compose.yml`), `--block-size 2304` (the page size the fp8 paged MQA
 needs — without it output corrupts with no error), `--language-model-only` (text only by default; images are one knob
 away, see [Images](#images) — the vision tower itself is 1.05 GiB), `--moe-backend marlin`, `--gpu-memory-utilization 0.85`, `--kv-cache-dtype fp8_e4m3`, `--enforce-eager`,
-`--tool-call-parser glm47` (`glm` silently drops tool calls), `--reasoning-parser deepseek_r1`. Context length does
+`--tool-call-parser glm47` (`glm` silently drops tool calls), `--reasoning-parser deepseek_r1`,
+`--enable-prompt-tokens-details` (reports prefix-cache hits per request as `usage.prompt_tokens_details.cached_tokens`,
+the same field the DeepSeek stack exposes, so agent harnesses can meter cached vs. fresh prefill). Context length does
 not move speed (262K vs 65K: same tok/s), so there is no reason to shrink it. The KV pool is not pinned — the
 profiler sizes it (7.48 GiB = 1,151,844 tokens = 4.4 full-262K streams on this checkpoint). The default uses the
 bundled MTP head, so there is no drafter dependency and it is commercial-safe as shipped.
@@ -125,7 +127,7 @@ vllm serve /models/GLM-5.3-Flash-NVFP4 --served-model-name glm-5.3-flash-nvfp4 -
   --tensor-parallel-size 2 --distributed-executor-backend mp --nnodes 2 --node-rank 0 --master-addr 192.168.200.14 --master-port 25000
   --language-model-only --kv-cache-dtype fp8_e4m3 --block-size 2304
   --max-num-batched-tokens 4096 --max-model-len 262144 --max-num-seqs 2 --gpu-memory-utilization 0.85
-  --moe-backend marlin --enforce-eager --tool-call-parser glm47 --enable-auto-tool-choice --reasoning-parser deepseek_r1
+  --moe-backend marlin --enforce-eager --tool-call-parser glm47 --enable-auto-tool-choice --enable-prompt-tokens-details --reasoning-parser deepseek_r1
   --speculative-config '{"method":"mtp","num_speculative_tokens":3}' --trust-remote-code
 ```
 

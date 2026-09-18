@@ -34,7 +34,8 @@ scripts/stop-both.sh                    # 必ず両 rank
 SM121 top-k パッチの mount（`docker-compose.yml`）、`--block-size 2304`（fp8 の paged MQA が要求する page サイズ。外すとエラーなしに出力が壊れる）、
 `--language-model-only`（既定はテキストのみ。画像は knob 1 つで有効化できる。[画像](#画像) を参照。vision tower 自体は 1.05 GiB）、`--moe-backend marlin`、
 `--gpu-memory-utilization 0.85`、`--kv-cache-dtype fp8_e4m3`、`--enforce-eager`、`--tool-call-parser glm47`（`glm` だと tool call が黙って消える）、
-`--reasoning-parser deepseek_r1`。文脈長は速度に効かない（262K と 65K で同じ tok/s）ので、削る理由はありません。
+`--reasoning-parser deepseek_r1`、`--enable-prompt-tokens-details`（リクエストごとの prefix cache ヒットを
+`usage.prompt_tokens_details.cached_tokens` で返す。DeepSeek スタックと同じフィールドで、agent 側が cached / fresh prefill を計量できる）。文脈長は速度に効かない（262K と 65K で同じ tok/s）ので、削る理由はありません。
 KV プールは pin せず profiler に任せます（この checkpoint で 7.48 GiB = 1,151,844 トークン = 262K 満杯 4.4 本）。
 既定は内蔵 MTP ヘッドなので drafter への依存はなく、そのまま商用可です。
 
@@ -119,7 +120,7 @@ vllm serve /models/GLM-5.3-Flash-NVFP4 --served-model-name glm-5.3-flash-nvfp4 -
   --tensor-parallel-size 2 --distributed-executor-backend mp --nnodes 2 --node-rank 0 --master-addr 192.168.200.14 --master-port 25000
   --language-model-only --kv-cache-dtype fp8_e4m3 --block-size 2304
   --max-num-batched-tokens 4096 --max-model-len 262144 --max-num-seqs 2 --gpu-memory-utilization 0.85
-  --moe-backend marlin --enforce-eager --tool-call-parser glm47 --enable-auto-tool-choice --reasoning-parser deepseek_r1
+  --moe-backend marlin --enforce-eager --tool-call-parser glm47 --enable-auto-tool-choice --enable-prompt-tokens-details --reasoning-parser deepseek_r1
   --speculative-config '{"method":"mtp","num_speculative_tokens":3}' --trust-remote-code
 ```
 

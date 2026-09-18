@@ -108,6 +108,7 @@ services:
         $$EAGER
         --tool-call-parser ${TOOL_CALL_PARSER}
         --enable-auto-tool-choice
+        --enable-prompt-tokens-details
         --reasoning-parser ${REASONING_PARSER}
         $$SPEC
         $$KC
