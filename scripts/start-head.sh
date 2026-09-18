@@ -18,6 +18,8 @@ ssh -o BatchMode=yes "$HEAD_HOST" "bash -lc 'cd ~/glm53-cluster && mkdir -p ~/.c
   env -u MASTER_ADDR -u MASTER_PORT -u NODE_RANK -u HEADLESS COMPOSE_DISABLE_ENV_FILE=1 \
   NODE_RANK=0 HEADLESS= VLLM_HOST_IP=$HEAD_IP $OVERRIDES \
   docker compose -p glm53 --env-file cluster.env -f docker-compose.yml $EXTRA_COMPOSE up -d && docker compose -p glm53 ps'"
-# cache flusher sidecar (tonyd2wild cache_flusher.sh): keep Cached < 40 GiB for 25 min while the shards load —
+# cache flusher (tonyd2wild cache_flusher.sh): keep Cached < 40 GiB for 25 min while the shards load —
 # the GB10 driver does not reclaim page cache by itself (NV_ERR_NO_MEMORY after the load, forum 381429).
-ssh -o BatchMode=yes "$HEAD_HOST" 'nohup bash -c "end=\$((SECONDS+1500)); while [ \$SECONDS -lt \$end ]; do c=\$(awk \"/^Cached:/{print int(\\\$2/1048576)}\" /proc/meminfo); [ \"\${c:-0}\" -gt 40 ] && { sync; echo 3 | sudo -n tee /proc/sys/vm/drop_caches >/dev/null; }; sleep 5; done" > ~/glm53-cluster/logs/cache-flusher.log 2>&1 &'
+# scripts/cache-flusher.sh uses `sudo -n` where the node has it and a privileged container where it does
+# not, so a node without a passwordless sudo rule still gets flushed instead of failing silently.
+ssh -o BatchMode=yes "$HEAD_HOST" '~/glm53-cluster/scripts/cache-flusher.sh watch 1500'

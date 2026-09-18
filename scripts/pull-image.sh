@@ -4,7 +4,14 @@ set -euo pipefail
 # shellcheck disable=SC1091
 source ~/glm53-cluster/cluster.env
 IMAGE="${1:-$IMAGE}"   # optional: pull another image (e.g. tonyd2wild v11) — log goes to pull-image-<tag>.log
-LOG=~/glm53-cluster/logs/pull-image$( [ -n "${1:-}" ] && echo "-$(echo "$1" | tr '/:' '__')" ).log
+# The suffix is built with an if, not `[ -n "$1" ] && echo …`: under `set -e` a command
+# substitution whose last command exits non-zero fails the assignment itself, so with no
+# argument the script exited 0 before pulling anything (observed 2026-09-18).
+if [ -n "${1:-}" ]; then
+  LOG=~/glm53-cluster/logs/pull-image-$(echo "$1" | tr '/:' '__').log
+else
+  LOG=~/glm53-cluster/logs/pull-image.log
+fi
 mkdir -p ~/glm53-cluster/logs
 docker pull "$IMAGE" 2>&1 | tee "$LOG"
 rc=${PIPESTATUS[0]}

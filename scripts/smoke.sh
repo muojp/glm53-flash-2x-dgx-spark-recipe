@@ -12,7 +12,7 @@ n1() { ssh -o BatchMode=yes "$WORKER_HOST" "$@"; }
 n2() { ssh -o BatchMode=yes "$HEAD_HOST" "$@"; }
 echo "SMOKE_START $TS overrides=[${OVERRIDES:-}] extra=[${EXTRA_COMPOSE:-}]"
 "$DIR/scripts/stop-both.sh" >/dev/null 2>&1
-for h in "$WORKER_HOST" "$HEAD_HOST"; do ssh -o BatchMode=yes "$h" "sudo -n sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'; free -g | sed -n 2p"; done
+for h in "$WORKER_HOST" "$HEAD_HOST"; do ssh -o BatchMode=yes "$h" "~/glm53-cluster/scripts/cache-flusher.sh once; free -g | sed -n 2p"; done
 "$DIR/scripts/start-worker.sh" || { echo "SMOKE_FAIL start-worker"; exit 1; }
 sleep 25
 "$DIR/scripts/start-head.sh" || { echo "SMOKE_FAIL start-head"; "$DIR/scripts/stop-both.sh"; exit 1; }
